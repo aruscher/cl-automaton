@@ -8,4 +8,5 @@
   :serial t
   :pathname "src/"
   :components ((:file "package")
+	       (:file "protocol")
                (:file "cl-automaton")))
