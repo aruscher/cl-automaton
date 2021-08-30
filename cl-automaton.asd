@@ -9,4 +9,5 @@
   :pathname "src/"
   :components ((:file "package")
 	       (:file "protocol")
+	       (:file "export")
                (:file "cl-automaton")))
