@@ -7,8 +7,7 @@
 (defgeneric add-transition (automaton/table from-state input to-state))
 
 (defclass transition-table ()
-  ((table :initform nil
-	  :type hash-table
+  ((table :type hash-table
 	  :reader table)
    (state-test-f :initarg :state-test-f
 		 :initform (error "STATE-TEST-F required.")
@@ -27,8 +26,7 @@
 	  (make-hash-table :test state-test-f))))
 
 (defmethod states ((transition-table transition-table))
-  (loop :for key :being the hash-key of (table transition-table)
-	:collect key))
+  (alexandria:hash-table-keys (table transition-table)))
 
 (defmethod add-state ((transition-table transition-table) state &optional is-final-p)
   (declare (ignore is-final-p))
@@ -54,6 +52,8 @@
 (defgeneric is-final-state-p (automaton state))
 (defgeneric mark-state-final (automaton state))
 (defgeneric advance-state (automaton event))
+(defgeneric states (automaton))
+(defgeneric final-states (automaton))
 
 ;;;
 (defclass finite-state-machine (automaton)
@@ -62,10 +62,8 @@
    (init-state :initarg :init-state
 	       :initform (error "INIT-STATE required.")
 	       :reader init-state)
-   (final-states :initarg :final-states
-		 :initform nil
-		 :accessor final-states
-		 :type list)
+   (final-state-table :accessor final-state-table
+		      :type hash-table)
    (transitions :initarg :transitions
 		:initform nil
 		:accessor transitions
@@ -74,21 +72,28 @@
 		     :reader transition-table)))
 
 
-(defmethod initialize-instance :after ((fsm finite-state-machine) &key (state-test-f #'eql) (input-test-f #'eql) (states nil))
-  (with-slots (current-state init-state transitions transition-table) fsm
+(defmethod initialize-instance :after ((fsm finite-state-machine) &key (final-states nil) (state-test-f #'eql) (input-test-f #'eql) (states nil))
+  (with-slots (current-state init-state transitions transition-table final-state-table) fsm
     (setf transition-table
 	  (make-instance 'transition-table :state-test-f state-test-f
 					   :input-test-f input-test-f))
+    (setf final-state-table
+	  (make-hash-table :test state-test-f))
     (add-state fsm init-state)
     (setf current-state init-state)
     (dolist (state states)
       (add-state fsm state))
+    (dolist (final-state final-states)
+      (add-state fsm final-state t))
     (dolist (transition transitions)
       (apply #'add-transition fsm transition)))
   fsm)
 
 (defmethod states ((fsm finite-state-machine))
   (states (transition-table fsm)))
+
+(defmethod final-states ((fsm finite-state-machine))
+  (alexandria:hash-table-keys (final-state-table fsm)))
 
 (defmethod add-state ((fsm finite-state-machine) state &optional is-final-p)
   (with-slots (transition-table) fsm
@@ -102,13 +107,14 @@
 
 (defmethod is-final-state-p ((fsm finite-state-machine) state)
   (and (has-state-p fsm state)
-       (member state (final-states fsm))))
+       (gethash state (final-state-table fsm))))
 
 (defmethod mark-state-final ((fsm finite-state-machine) state)
-  (with-slots (final-states) fsm
+  (with-slots (final-state-table) fsm
     (assert (has-state-p fsm state))
     (unless (is-final-state-p fsm state)
-      (push state final-states))))
+      (setf (gethash state final-state-table)
+	    t))))
 
 (defmethod add-transition ((fsm finite-state-machine) from-state input to-state)
   (add-transition (transition-table fsm) from-state input to-state)
