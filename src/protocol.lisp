@@ -1,5 +1,6 @@
 (in-package #:cl-automaton)
 
+(defgeneric states (automaton/table))
 (defgeneric add-state (automaton/table state &optional is-final-p))
 (defgeneric next-states (automaton/table state &optional input))
 (defgeneric has-state-p (automaton/table state))
@@ -25,6 +26,10 @@
     (setf (slot-value transition-table 'table)
 	  (make-hash-table :test state-test-f))))
 
+(defmethod states ((transition-table transition-table))
+  (loop :for key :being the hash-key of (table transition-table)
+	:collect key))
+
 (defmethod add-state ((transition-table transition-table) state &optional is-final-p)
   (declare (ignore is-final-p))
   (with-slots (table input-test-f) transition-table
@@ -44,12 +49,15 @@
 
 ;; --------------------
 
-(defclass automaton ()
-  ((states :initarg :states
-	   :initform nil
-	   :accessor states
-	   :type list)
-   (current-state :initform nil
+(defclass automaton ()())
+
+(defgeneric is-final-state-p (automaton state))
+(defgeneric mark-state-final (automaton state))
+(defgeneric advance-state (automaton event))
+
+;;;
+(defclass finite-state-machine (automaton)
+  ((current-state :initform nil
 		  :accessor current-state)
    (init-state :initarg :init-state
 	       :initform (error "INIT-STATE required.")
@@ -65,51 +73,46 @@
    (transition-table :initform nil
 		     :reader transition-table)))
 
-(defgeneric is-final-state-p (automaton state))
-(defgeneric mark-state-final (automaton state))
-(defgeneric advance-state (automaton event))
 
-(defmethod initialize-instance :after ((automaton automaton) &key (state-test-f #'eql) (input-test-f #'eql))
-  (with-slots (current-state init-state states transitions transition-table) automaton
+(defmethod initialize-instance :after ((fsm finite-state-machine) &key (state-test-f #'eql) (input-test-f #'eql) (states nil))
+  (with-slots (current-state init-state transitions transition-table) fsm
     (setf transition-table
 	  (make-instance 'transition-table :state-test-f state-test-f
 					   :input-test-f input-test-f))
-    (add-state automaton init-state)
+    (add-state fsm init-state)
     (setf current-state init-state)
     (dolist (state states)
-      (add-state automaton state))
+      (add-state fsm state))
     (dolist (transition transitions)
-      (apply #'add-transition automaton transition)))
-  automaton)
+      (apply #'add-transition fsm transition)))
+  fsm)
 
-(defmethod add-state ((automaton automaton) state &optional is-final-p)
-  (with-slots (states transition-table) automaton
-    (unless (member state states)
-      (push state states)
+(defmethod states ((fsm finite-state-machine))
+  (states (transition-table fsm)))
+
+(defmethod add-state ((fsm finite-state-machine) state &optional is-final-p)
+  (with-slots (transition-table) fsm
+    (unless (has-state-p fsm state)
       (add-state transition-table state)
       (when is-final-p
-	(mark-state-final automaton state)))))
+	(mark-state-final fsm state)))))
 
-(defmethod has-state-p ((automaton automaton) state)
-  (member state (states automaton)))
+(defmethod has-state-p ((fsm finite-state-machine) state)
+  (has-state-p (transition-table fsm) state))
 
-(defmethod is-final-state-p ((automaton automaton) state)
-  (and (has-state-p automaton state)
-       (member state (final-states automaton))))
+(defmethod is-final-state-p ((fsm finite-state-machine) state)
+  (and (has-state-p fsm state)
+       (member state (final-states fsm))))
 
-(defmethod mark-state-final ((automaton automaton) state)
-  (with-slots (states final-states) automaton
-    (assert (has-state-p automaton state))
-    (unless (is-final-state-p automaton state)
+(defmethod mark-state-final ((fsm finite-state-machine) state)
+  (with-slots (final-states) fsm
+    (assert (has-state-p fsm state))
+    (unless (is-final-state-p fsm state)
       (push state final-states))))
 
-(defmethod add-transition ((automaton automaton) from-state input to-state)
-  (add-transition (transition-table automaton) from-state input to-state)
-  (push (list from-state input to-state) (transitions automaton)))
-
-;;;
-(defclass finite-state-machine (automaton)
-  ())
+(defmethod add-transition ((fsm finite-state-machine) from-state input to-state)
+  (add-transition (transition-table fsm) from-state input to-state)
+  (push (list from-state input to-state) (transitions fsm)))
 
 (defclass mealy-automaton (finite-state-machine)
   ())
