@@ -24,7 +24,6 @@
 	  :for from-node = (first transition)
 	  :for label = (or (second transition) "<&#949;>")
 	  :for to-node = (third transition)
-	  :do (format stream "~&~a->~a [label=~a]~%" from-node to-node label)
-	  :do (print (list from-node label to-node)))
+	  :do (format stream "~&~a->~a [label=~a]~%" from-node to-node label))
     (write-line "}" stream)
     (force-output stream)))
