@@ -10,7 +10,18 @@
   :depends-on ("alexandria")
   :components ((:file "package")
 	       (:file "protocol")
+	       (:file "finite-state-machine")
 	       (:file "export")
-               (:file "cl-automaton")))
+               (:file "cl-automaton"))
+  :in-order-to ((test-op (test-op "cl-automaton/tests"))))
 
+(asdf:defsystem #:cl-automaton/tests
+  :serial t
+  :pathname "t/"
+  :depends-on ("fiveam" "cl-automaton")
+  :components ((:file "package")
+	       (:file "main-suite")
+	       (:file "protocol-tests"))
+  :perform (test-op (op c)
+		   (uiop:symbol-call :cl-automaton/tests :run-tests)))
 
