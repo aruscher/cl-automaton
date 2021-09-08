@@ -12,4 +12,6 @@
    #:mark-state-final
    #:final-state-p
    #:transitions
-   #:add-transition))
+   #:add-transition
+   ;; finite-state-machine.lisp
+   #:finite-state-machine))

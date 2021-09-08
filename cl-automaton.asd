@@ -21,7 +21,7 @@
   :depends-on ("fiveam" "cl-automaton")
   :components ((:file "package")
 	       (:file "main-suite")
-	       (:file "protocol-tests"))
+	       (:file "finite-state-machine-tests"))
   :perform (test-op (op c)
 		   (uiop:symbol-call :cl-automaton/tests :run-tests)))
 
