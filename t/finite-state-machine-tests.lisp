@@ -8,6 +8,10 @@
     (dolist (state fsm-states)
       (is (has-state-p fsm state)))))
 
+(def-test finite-state-machine-init-state-argument ()
+  (let ((fsm (make-instance 'finite-state-machine :init-state 1)))
+    (is (has-state-p fsm 1))))
+
 (def-test states-work-normal ()
   (let ((fsm (make-instance 'finite-state-machine)))
     (is (null (states fsm))))
@@ -48,12 +52,6 @@
 (def-test advance-state-works-normal ()
   (fail "Not implemented."))
 
-(def-test mark-sate-final-works-normal ()
-  (let* ((fsm (make-instance 'finite-state-machine)))
-    (add-state fsm 1)
-    (mark-state-final fsm 1)
-    (is (final-state-p fsm 1))))
-
 (def-test final-states-works-normal ()
   (let ((fsm (make-instance 'finite-state-machine)))
     (is (null (final-states fsm))))
@@ -62,6 +60,12 @@
     (is (= 0 (length (final-states fsm))))
     (add-state fsm 2 t)
     (is (equal '(2) (final-states fsm)))))
+
+(def-test mark-sate-final-works-normal ()
+  (let* ((fsm (make-instance 'finite-state-machine)))
+    (add-state fsm 1)
+    (is (= 1 (mark-state-final fsm 1)))
+    (is (final-state-p fsm 1))))
 
 (def-test mark-state-final-signals-error ()
   (let* ((fsm (make-instance 'finite-state-machine)))
@@ -77,3 +81,11 @@
     (mark-state-final fsm 1)
     (is (final-state-p fsm 1))
     (is (= 1 (length (final-states fsm))))))
+
+(def-test final-state-p-works-normal ()
+  (let ((fsm (make-instance 'finite-state-machine)))
+    (is (not (final-state-p fsm 1)))
+    (add-state fsm 1)
+    (is (not (final-state-p fsm 1)))
+    (mark-state-final fsm 1)
+    (is (final-state-p fsm 1))))

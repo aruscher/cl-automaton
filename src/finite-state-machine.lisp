@@ -25,9 +25,8 @@
 (defmethod add-state ((transition-table transition-table) state &optional is-final-p)
   (declare (ignore is-final-p))
   (with-slots (table input-test-f) transition-table
-    (unless (has-state-p transition-table state)
-      (setf (gethash state table)
-	    (make-hash-table :test input-test-f)))))
+    (setf (gethash state table)
+	    (make-hash-table :test input-test-f))))
 
 (defmethod has-state-p ((transition-table transition-table) state)
   (gethash state (table transition-table)))
@@ -57,35 +56,19 @@
   (gethash state (table transition-table)))
 
 ;;; --------------------
-
 (defclass finite-state-machine (automaton)
   ((transition-table :reader transition-table
 		     :type transition-table)
    (final-state-table :accessor final-state-table
-		      :type hash-table)
-   (current-state :initform nil
-		  :accessor current-state)
-   (init-state :initarg :init-state
-	       :initform nil
-	       :reader init-state)))
+		      :type hash-table)))
 
-
-(defmethod initialize-instance :after ((fsm finite-state-machine) &key (final-states nil) (state-test-f #'eql) (input-test-f #'eql) (states nil) (transitions nil))
-  (with-slots (current-state init-state transition-table final-state-table) fsm
+(defmethod initialize-instance :before ((fsm finite-state-machine) &key (state-test-f #'eql) (input-test-f #'eql) )
+  (with-slots (transition-table final-state-table) fsm
     (setf transition-table
 	  (make-instance 'transition-table :state-test-f state-test-f
 					   :input-test-f input-test-f))
     (setf final-state-table
-	  (make-hash-table :test state-test-f))
-    (when init-state 
-      (add-state fsm init-state)
-      (setf current-state init-state))
-    (dolist (state states)
-      (add-state fsm state))
-    (dolist (final-state final-states)
-      (add-state fsm final-state t))
-    (dolist (transition transitions)
-      (apply #'add-transition fsm transition)))
+	  (make-hash-table :test state-test-f)))
   fsm)
 
 (defmethod states ((fsm finite-state-machine))

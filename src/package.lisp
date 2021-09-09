@@ -5,6 +5,8 @@
   (:export
    ;; protocol.lisp
    #:automaton
+   #:current-state
+   #:init-state
    #:states
    #:add-state
    #:has-state-p
